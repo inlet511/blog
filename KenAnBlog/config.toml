@@ -1,0 +1,4 @@
+baseURL = 'https://inlet511.github.io/'
+languageCode = 'en-us'
+title = '安宁技术博客'
+theme="hugo-eureka"

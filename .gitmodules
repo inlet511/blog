@@ -1,0 +1,7 @@
+[submodule "KenAnBlog/public"]
+	path = KenAnBlog/public
+	url = https://github.com/inlet511/inlet511.github.io.git
+	branch = main
+[submodule "KenAnBlog/KenAnBlog/themes/hugo-eureka"]
+	path = KenAnBlog/KenAnBlog/themes/hugo-eureka
+	url = https://github.com/wangchucheng/hugo-eureka.git
