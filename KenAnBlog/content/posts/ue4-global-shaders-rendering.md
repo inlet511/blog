@@ -223,7 +223,7 @@ Cpp后面两个函数，分别是DrawToQuad_RenderThread和DrawToQuad，从名�
 - 接着的一大段设置了Graphic pipeline 的各种状态，例如DepthStencilState，BlendState，绘制类型，顶点布局，以及顶点和像素着色器等
 - PixelShader->SetParameter向Shader传入了颜色参数
 - 下面用注释包裹了两个大的部分，分别是设定Vertex Buffer和Index Buffer，设定的方法很类似，都是Lock->Memcpy->Unlock
-- 顶点位置我们在Vertex Shader中不做任何处理直接传递给Pixel Shader，因此，在Vertex Buffer中我们直接设定位置为一个长宽均为[-1,1]的正方形，作为Clip Space坐标。
+- 顶点位置我们在Vertex Shader中不做任何处理直接传递给Pixel Shader，因此，在Vertex Buffer中我们直接设定位置为一个长宽均为[-1,1]的正方形，作为NDC坐标。
 - 绘制IndexPrimitive的函数为DrawIndexedPrimitive，其参数原型为：
 ```cpp
 void DrawIndexedPrimitive(FRHIIndexBuffer* IndexBuffer, int32 BaseVertexIndex, uint32 FirstInstance, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
