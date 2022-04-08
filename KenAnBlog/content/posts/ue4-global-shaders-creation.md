@@ -8,7 +8,7 @@ categories: [UE4]
 
 >前置知识
 > - 了解图形学中的顶点着色器和像素着色器
-> - UE4中创建和配置插件的方法
+> - UE4中创建和配置插件的方法，了解插件的文件结构
 > - UE4C++
 
 Global Shaders 是只应用于特定模型(例如全屏Quad),不需要和材质交互的Shader，每个Global Shader在一个项目中只有一个实例。
@@ -124,6 +124,7 @@ public:
 	FMyShaderBase(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
+		MainColorVal.Bind(Initializer.ParameterMap, TEXT("MainColor"));
 	}
 
 	static bool ShouldCache(EShaderPlatform Platform)
@@ -178,9 +179,40 @@ IMPLEMENT_SHADER_TYPE(, FShader_PS, TEXT("/GlobalShaderPlug/MyGlobalShader.usf")
 
 注意自定义的Shader基类开头的宏， DECLARE_INLINE_TYPE_LAYOUT，这是自定义Shader基类必须的。
 
-在基类的private区域(37行)使用LAYOUT_FIELD宏声明了一个参数，名称为MainColorVal，C++参数必须和Shader文件中的参数名称对应，并在后面多加一个Val。因为我们上一步写的usf文件中，shader有个**MainColor**的参数，因此这里是**MainColorVal**.
-
-另外注意在SetParameters函数中(33行)，我们使用了SetShaderValue函数，将MainColorVal参数和PixelShader进行了绑定，这里获取PixelShader的方式是RHICmdList.GetBoundPixelShader()。
+### 定义和使用一个属性的三个步骤
+1. 声明
+在FMyShaderBase的private区域使用LAYOUT_FIELD宏声明了一个参数，名称为MainColorVal
+```cpp
+LAYOUT_FIELD(FShaderParameter, MainColorVal);
+```
+2. 绑定shader文件中相应的属性
+在FMyShaderBase的构造函数中使用Bind函数将上一步声明的属性(MainColorVal)和shader文件中的MainColor属性进行绑定
+```cpp
+MainColorVal.Bind(Initializer.ParameterMap, TEXT("MainColor"));
+```
+3. 传值
+在SetParameters函数中，我们使用了SetShaderValue函数，将属性值传入shader。
+```cpp
+void SetParameters(FRHICommandListImmediate& RHICmdList, const FLinearColor& MyColor)
+{
+	SetShaderValue(RHICmdList, RHICmdList.GetBoundPixelShader(), MainColorVal, MyColor);
+}
+```
+SetParameter的函数原型:
+```cpp
+template<typename ShaderRHIParamRef, class ParameterType, typename TRHICmdList>
+void SetShaderValue(
+	TRHICmdList& RHICmdList,
+	const ShaderRHIParamRef& Shader,
+	const FShaderParameter& Parameter,
+	const ParameterType& Value,
+	uint32 ElementIndex = 0
+	)
+```
+  - 第一个参数是RHICmdList
+  - 第二个参数是Shader,这里获取PixelShader的方式是RHICmdList.GetBoundPixelShader()，也可以通过类似的一组方法获取VertexShader等其他Shader
+  - 第三个参数是属性，就是第一步中声明的属性
+  - 第四个参数是值，我们自己给SetParameters函数增加了一个FLinearColor类型的参数，并传递给这个形参。由于FLinearColor是一个包含了四个float类型元素的结构体，因此和usf Shader中的float4类型是匹配的。
 
 因为我们在基类中已经绑定好了参数，所以在后面的FShader_VS和FShader_PS中只做了很少的事情，基本就是使用DECLARE_GLOBAL_SHADER宏声明了Shader。
 
