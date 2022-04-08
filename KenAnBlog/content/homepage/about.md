@@ -2,8 +2,8 @@
 title: 安宁
 draft: false
 role: 合伙人
-avatar: images/icon.png
-bio: UE Unity C++ C#
+avatar: images/signature.jpg
+bio: Coding for love
 organization:
   name: 武汉艺术先生
   url: https://mrartcn.com/
