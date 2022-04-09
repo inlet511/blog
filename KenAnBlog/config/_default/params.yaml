@@ -17,7 +17,7 @@ style:
 # E.g. Person, Organization, LocalBusiness, Project, EducationalOrganization
 siteType: Person
 icon: images/icon.png
-publisherName: WANG Chucheng
+publisherName: An Ning
 publisherLogo:
 
 highlight:
@@ -29,7 +29,7 @@ highlight:
     languages:
       - dart
     # See https://github.com/highlightjs/cdn-release/tree/main/build/styles for available styles.
-    style: base16/solarized-light
+    style: base16/dracula
 
 math:
   handler: katex
