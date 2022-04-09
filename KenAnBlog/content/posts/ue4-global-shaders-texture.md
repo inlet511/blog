@@ -11,6 +11,10 @@ categories: [UE4]
 > - 图形学中的input layout
 > - [上一篇]({{< ref "posts/ue4-global-shaders-rendering" >}})
 
+## 工程源码
+[UE4GraphicsGuid](https://github.com/inlet511/UEGrahpicsGuide/releases/tag/DrawToQuad_Texture)
+测试场景: Levels/RenderToQuad_Texture
+
 上一篇我们实现了向自定义的Global Shaders传递颜色参数，并绘制到一张RenderTarget上，这一节我们来实现传递一张贴图。
 
 ## 一、修改usf shader
