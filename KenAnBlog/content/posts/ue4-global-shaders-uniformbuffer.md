@@ -59,7 +59,7 @@ enum EUniformBufferUsage
 	UniformBuffer_MultiFrame,
 };
 ```
-因为我们再这里只需要使用一次绘制(在场景中我们只在BeginPlay后面调用了一次"DrawToQuad")，后面就可以丢弃了，所以使用的是SingleFrame(似乎SingleDraw应该更合适？待验证)。
+因为我们再这里只需要使用一次绘制(在场景中我们只在BeginPlay后面调用了一次"DrawToQuad")，后面就可以丢弃了，所以使用SingleDraw或者SingleFrame。
 最后使用SetUniformBufferParameter函数将Buffer传递到shader中。
 
 >注意这里简便起见，直接将Uniform Buffer的成员数值在代码中写死了，目的是把注意力集中在核心内容上。在实践中，为了能在蓝图中设置这些数值，我们也可以声明一个USTRUCT结构体，在蓝图中通过DrawToQuad函数传递给DrawToQuad_RenderThread，再通过参数形式传递给SetParameters函数，这只需要给这几个相关函数都增加一个参数即可。
