@@ -6,17 +6,17 @@ avatar: images/signature.jpg
 bio: Coding for love
 organization:
   name: 武汉艺术先生
-  url: https://mrartcn.com/
+  url: http://mrartcn.com/
 social:
   - icon: envelope
     iconPack: fas
-    url: mailto:example@example.com
+    url: mailto:80669349@qq.com
   - icon: qq
     iconPack: fab
-    url: https://example.com/
+    url: 80669349
   - icon: github
     iconPack: fab
-    url: https://example.com/
+    url: https://github.com/inlet511/
 
 weight: 1
 widget:
