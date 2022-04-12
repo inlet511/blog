@@ -25,6 +25,20 @@ series:
 
 测试场景: Levels/ComputeShader
 
+
+## 知识点
+
+### UAV和SRV
+[ref](https://zhuanlan.zhihu.com/p/353618362)
+SRV 和 UAV 都是Shader可访问的资源，不同之处在于
+SRV：只读，可用于**任意类型Shader**.
+UAV：可读写，可用于 **Pixel Shader**，**Compute Shader**
+
+### UAV的用法流程范例
+前提：为某个资源创建UAV，SRV。
+- 范例1：将UAV绑定到Compute Shader，先读再写
+- 范例2：将UAV绑定到Compute Shader，写入内容，然后将SRV绑定到Pixel Shader，利用SRV数据进行绘制
+
 ## 一、The Compute Shader要点回顾
 ### 1.1 适用情形
 Compute Shader适用于大量没有顺序要求的并行计算，可以用于非图形相关的运算(GPGPU)，也可以用于图形渲染相关的计算。它的优势在于“并行”，对于没有顺序要求和顺序依赖的运算处理速度一般要比CPU快很多。
