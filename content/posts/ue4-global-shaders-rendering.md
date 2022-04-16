@@ -24,6 +24,11 @@ series:
 
 测试场景: Levels/RenderToQuad_Color
 
+## 其他参考源码
+[CustomComputeShader](https://github.com/AyoubKhammassi/CustomComputeShaders)
+
+重点看这个范例如何使用RenderModule的**GetResolvedSceneColorCallbacks**去添加渲染函数
+
 ## 使用Global Shaders
 目前我们的GlobalShaders仅仅是输出一个纯色，为了让它起作用，我们将这样使用该Shader:
 1. 创建一个TextureRenderTarget2D(渲染目标贴图)
