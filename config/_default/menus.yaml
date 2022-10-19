@@ -5,12 +5,15 @@ main:
   - name: UE4
     url: /categories/ue4
     weight: 1
+  - name: UE5
+    url: /categories/ue5
+    weight: 2
   - name: 系列
     url: /series/
-    weight: 2
+    weight: 3
   - name: Tags
     url: /tags/
-    weight: 3
+    weight: 4
   # - name: Docs
   #   url: /docs/
   #   weight: 3
