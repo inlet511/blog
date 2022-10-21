@@ -8,6 +8,9 @@ main:
   - name: UE5
     url: /categories/ue5
     weight: 2
+  - name: 材质
+    url: /categories/材质
+    weight: 2
   - name: 系列
     url: /series/
     weight: 3
