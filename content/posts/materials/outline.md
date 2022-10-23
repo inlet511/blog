@@ -15,7 +15,7 @@ tags:
   - outline
 ---
 在材质编辑器中实现描边效果的方法如下图
-![outline](../outline.png)
+![outline](./outline.png)
 
 SampleSceneDepth获取场景深度，并考虑了CustomDepth和屏幕像素偏移的输入。
 Pixel Offset这个输入就是让整个深度采样的工作向某个方向偏移一定的像素值。
