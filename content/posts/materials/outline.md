@@ -4,10 +4,15 @@ date: 2022-10-23T14:55:24+08:00
 draft: false
 toc: true
 categories: [材质]
+series:
+  - 材质节点
 tags: 
   - 材质
   - Postprocess
   - UE
+  - samplescenedepth
+  - blursampleoffsets
+  - outline
 ---
 在材质编辑器中实现描边效果的方法如下图
 ![outline](../outline.png)
