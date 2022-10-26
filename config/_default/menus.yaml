@@ -8,15 +8,15 @@ main:
   - name: UE5
     url: /categories/ue5
     weight: 2
-  - name: 材质
-    url: /categories/材质
-    weight: 2
+  - name: 所有分类
+    url: /categories/
+    weight: 4
   - name: 系列
     url: /series/
-    weight: 3
+    weight: 5
   - name: Tags
     url: /tags/
-    weight: 4
+    weight: 6
   # - name: Docs
   #   url: /docs/
   #   weight: 3

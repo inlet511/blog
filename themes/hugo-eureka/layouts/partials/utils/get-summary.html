@@ -2,11 +2,11 @@
   <a href="{{ .Permalink }}" class="no-underline">
     <h3 class="mt-0">{{ .LinkTitle }}</h3>
   </a>
-  {{ if .Description }}
+  <!-- {{ if .Description }}
     {{ .Description | plainify | htmlUnescape }}
   {{ else if .Summary }}
     {{ .Summary | plainify | htmlUnescape }}
-  {{ end }}
+  {{ end }} -->
 
   {{ if eq .Type "docs" }}
     <div class="mx-6">
