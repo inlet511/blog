@@ -61,7 +61,7 @@ FArguments派生自TSlateBaseNamedArgs。
 TSlateBaseNamedArgs 及其父类 FSlateBaseNamedArgs 中包含一组由 *SLATE_PRIVATE_ATTRIBUTE_VARIABLE* 和 *SLATE_PRIVATE_ATTRIBUTE_FUNCTION* 定义的TAttribute以及函数，比如ToolTip, Cursor, Visibility, IsEnabled等，这是每个Slate都具有的共有属性。
 
 ## SLATE_ATTRIBUTE宏
-SLATE_ATTRIBUTE宏是Slate中用来给一个Slate界面添加属性的，这个属性可以在构建这个Slate的时候传入。
+SLATE_ATTRIBUTE宏是Slate中用来给一个Slate界面添加属性的，这个属性可以在构建这个Slate的时候从父级传入。
 
 SLAET_ATTRIBUTE宏只能出现在 SLATE_BEGIN_ARGS宏和SLATE_END_ARGS宏之间。
 
@@ -71,6 +71,7 @@ SLAET_ATTRIBUTE宏只能出现在 SLATE_BEGIN_ARGS宏和SLATE_END_ARGS宏之间�
 
 另外它还包含一些可以给自身绑定 *Getter* 方法的函数。
 
+SLATE_ATTRIBUTE的主要作用就是开放参数给构造该Slate的父级代码，在父级可以传入参数，也可以在父级直接绑定一个函数作为Getter。
 
 
 ## 展开SLATE_ATTRIBUTE宏
@@ -183,9 +184,84 @@ IsSet() 用于返回数值是否被设置
 
 Bind(), BindStatic(), BindRaw(), BindUObject(), BindUFunction() 等用于绑定 *Getter* 函数
 
-> P.S. 注意Bind函数族只是绑定 Getter，并没有绑定 Setter，要设置值只能手动调用Set()
+> P.S. 注意Bind函数族只是绑定 Getter，并没有绑定 Setter，要设置值只能手动调用Set()。Getter保证了只要函数返回新的数值，会及时更新并显示到Slate中。
 
 
+## SLATE_ARGUMENT
+
+相比SLATE_ATTRIBUTE来说,SLATE_ARGUMENT就简单多了，我们可以直接将它全部展开。
+
+```cpp
+SLATE_ARGUMENT(FString, MyVar)
+// 第一次展开后为：
+SLATE_PRIVATE_ARGUMENT_VARIABLE( FString, MyVar ); 
+SLATE_PRIVATE_ARGUMENT_FUNCTION ( FString, MyVar )
+// 完全展开后为：
+FString _MyVar;
+WidgetArgsType& MyVar( FString InArg ) 
+{ 
+	_MyVar = InArg; 
+	return this->Me(); 
+}
+
+```
+可以看到 SLATE_ARGUMENT 定义的生成了一个前面带下划线的变量，类型为指定的类型，只能直接赋值，不能进行绑定。
+
+
+## 给SLATE_ATTRIBUTE传入参数/绑定函数的方法实例
+
+例如SButton有一个.IsEnabled的SLATE_ATTRIBUTE(它虽然被分为了*SLATE_PRIVATE_ATTRIBUTE_FUNCTION*和*SLATE_PRIVATE_ATTRIBUTE_VARIABLE*两部分，但合起来就等同于一个SLATE_ATTRIBUTE)，它控制着按钮的可见性。
+
+### 静态值
+如果该按钮的可见性在使用它的Slate构造时就直接确定了，我们可以直接给他一个确定的布尔值：
+```cpp
+SNew(SButton)
+.IsEnabled(true)
+```
+
+### 动态值
+但是如果该按钮的可见性是动态决定的，我们就需要给他绑定一个Getter函数。
+
+### 定义Getter函数
+*Getter函数必须是const类型的*，且返回Attribute需要的数据类型。
+
+例如我们可以这样定义这个getter函数：
+```cpp
+// .h
+bool ShouldShowCreateBtn() const;
+// .cpp
+bool SRadiationPanel::ShouldShowCreateBtn() const
+{
+	return HostRadiationComponent==nullptr;
+}
+```
+接下来我们可以这样绑定Getter函数:
+
+### 直接绑定一个Getter函数
+```cpp
+SNew(SButton)
+.IsEnabled(this, &SRadiationPanel::ShouldShowCreateBtn)
+```
+
+### 先声明、绑定，再使用
+当然还有一种完全等价的方法：
+先定义一个TAttribute<bool>类型的数据：
+
+```cpp
+TAttribute<bool> bShowCreateBtn;
+```
+
+然后在当前Slate构造的时候进行绑定：
+```cpp
+bShowCreateBtn.Bind(this, &SRadiationPanel::ShouldShowCreateBtn);
+```
+
+最后再使用这个TAttribute赋给IsEnabled:
+
+```cpp
+SNew(SButton)
+.IsEnabled(bShowCreateBtn)
+```
 
 
 
