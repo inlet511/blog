@@ -1,3 +1,7 @@
+{{ if .Site.Params.googleAnalyticsID }}
+{{ partial "analytics-gtag.html" . }}
+{{ end }}
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -62,7 +66,7 @@
 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload"
-  href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap"
+href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap"
   as="style" onload="this.onload=null;this.rel='stylesheet'">
 
 {{- $assets := .Site.Data.assets }}
@@ -143,17 +147,6 @@
 {{- end }}
 {{- end }}
 
-{{- if and .Site.GoogleAnalytics hugo.IsProduction }}
-<link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ .Site.GoogleAnalytics }}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() { dataLayer.push(arguments); }
-  gtag('js', new Date());
-  gtag('config', '{{ .Site.GoogleAnalytics }}');
-</script>
-{{- end }}
-
 {{ partial "custom-head" . }}
 
 {{- with .Site.Params.icon }}
@@ -172,3 +165,4 @@
 {{- range .AlternativeOutputFormats }}
 {{- printf `<link rel="%s" type="%s" href="%s" title="%s" />` .Rel .MediaType.Type .Permalink $.Site.Title | safeHTML }}
 {{- end }}
+

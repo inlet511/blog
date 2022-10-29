@@ -11,7 +11,7 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      serif: ["Lora", "Noto Serif SC", "serif"],
+      serif: ["Raleway", "Noto Sans SC", "sans"],
       mono: ["SFMono-Regular", "Menlo", "monospace"],
     },
     extend: {
