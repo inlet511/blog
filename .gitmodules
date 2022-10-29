@@ -2,3 +2,6 @@
 	path = KenAnBlog/public
 	url = https://github.com/inlet511/inlet511.github.io.git
 	branch = main
+[submodule "themes/beautifulhugo"]
+	path = themes/beautifulhugo
+	url = https://github.com/halogenica/beautifulhugo.git
