@@ -186,7 +186,9 @@ IMPLEMENT_SHADER_TYPE(, FShader_PS, TEXT("/GlobalShaderPlug/MyGlobalShader.usf")
 
 注意自定义的Shader基类开头的宏， DECLARE_INLINE_TYPE_LAYOUT，这是自定义Shader基类必须的。
 
-### 定义和使用一个属性的三个步骤
+定义完Shader，在使用Shader之前，必须要使用 *IMPLEMENT_SHADER_TYPE* 宏。
+
+### 定义和使用一个属性的三个步骤 {#defineparameter}
 1. 声明
 在FMyShaderBase的private区域使用LAYOUT_FIELD宏声明了一个参数，名称为MainColorVal
 ```cpp

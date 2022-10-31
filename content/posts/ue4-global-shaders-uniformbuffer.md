@@ -26,15 +26,18 @@ series:
 
 
 
-## 定义Uniform Buffer
+## 定义Uniform Buffer {#defineub}
 UE4中的Uniform Buffer是一种储存数据的结构体，大致对应OpenGL中的 Uniform Buffer Objects，以及DirectX中的 Constant Buffer。通过它，可以向Shader传递在所有实例中均相同的数据，例如变换矩阵。
 UE4中Uniform Buffer的声明采用宏的形式，例如下例中定义了一个FMyUniform结构体，其中包含三个不同类型的元素，并且将它和usf shader中的MyUniform变量(目前还没创建)关联起来。
 ```cpp
+// 一般在.h文件中
 BEGIN_UNIFORM_BUFFER_STRUCT(FMyUniform, )
 SHADER_PARAMETER(FLinearColor, Color1)
 SHADER_PARAMETER(FVector4, Color2)
 SHADER_PARAMETER(float, LerpValue)
 END_UNIFORM_BUFFER_STRUCT()
+
+// 必须在.cpp文件中
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FMyUniform, "MyUniform");
 ```
 ## 传递Uniform Buffer
