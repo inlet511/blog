@@ -1,5 +1,5 @@
 ---
-title: "UE4 Global Shaders - 01 创建"
+title: "UE4 Global Shaders - 01 结构"
 date: 2022-04-08T11:09:14+08:00
 toc: true
 categories: [UE4]
@@ -68,8 +68,12 @@ PrivateDependencyModuleNames.AddRange(
     );
 ```
 
-## 创建Shader文件
+## 创建usf shader文件
+虚幻引擎中，ush/usf文件就是传统意义上的hlsl shader文件，其中ush是头文件，usf是实现文件。如果写简单的shader，没有涉及到复杂的shader引用，一般只使用usf文件即可。
+为称呼方便，我们后文中均以usf文件代之所有的ush和usf类型的文件。
+
 先在插件中(GlobalShaderPlug文件夹中)创建一个Shaders文件夹，用于存放本插件中的Shaders文件。
+
 在刚创建的文件夹中放入一个MyGlobalShader.usf文件，其内容如下
 ```c
 #include "/Engine/Public/Platform.ush"
@@ -109,6 +113,8 @@ void FGlobalShaderPlugModule::StartupModule()
 ```
 
 ## 创建C++ Shader文件
+虚幻引擎中，除了usf的shader文件，我们还需要在C++中为usf文件中的每个Shader定义一个类，可以理解为hlsl shader在CPU中的化身，其主要作用是在C++中为Shader传参。
+
 接下来我们需要在C++文件中声明**Global顶点着色器**和**Global像素着色器**，他们都派生自**FGlobalShader**类，这是UE抽象出来的一个类型。我们需要这两个C++着色器类对Shader进行设置、传参等工作。
 在Plugins/GlobalShaderPlug/Source/GlobalShaderPlug/Public文件夹中手动创建一个**MyShaders.h**文件，刷新工程。
 
@@ -168,6 +174,8 @@ public:
 	{ }	
 };
 
+IMPLEMENT_SHADER_TYPE(, FShader_VS, TEXT("/GlobalShaderPlug/MyGlobalShader.usf"),TEXT("MainVS"),SF_Vertex)
+
 class FShader_PS : public FMyShaderBase
 {
 	DECLARE_GLOBAL_SHADER(FShader_PS);
@@ -179,23 +187,47 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FShader_VS, TEXT("/GlobalShaderPlug/MyGlobalShader.usf"),TEXT("MainVS"),SF_Vertex)
 IMPLEMENT_SHADER_TYPE(, FShader_PS, TEXT("/GlobalShaderPlug/MyGlobalShader.usf"), TEXT("MainPS"), SF_Pixel)
 ```
 这里定义了三个类，其中**FShaderBase**是派生自FGlobalShader自定义的Shader基类，**FShader_VS**和**FShader_PS**派生自FShaderBase，分别是顶点着色器和像素着色器。
 
 注意自定义的Shader基类开头的宏， DECLARE_INLINE_TYPE_LAYOUT，这是自定义Shader基类必须的。
 
-定义完Shader，在使用Shader之前，必须要使用 *IMPLEMENT_SHADER_TYPE* 宏。
+### IMPLEMENT_SHADER_TYPE
 
-### 定义和使用一个属性的三个步骤 {#defineparameter}
+每定义完一个Shader，要使用 *IMPLEMENT_SHADER_TYPE* 宏 (如果是Global Shader，也可以使用 *IMPLEMENT_GLOBAL_SHADER*)来关联C++ Shader和usf文件。例如：
+```cpp
+class FShader_PS : public FMyShaderBase
+{
+	DECLARE_GLOBAL_SHADER(FShader_PS);
+public:
+	FShader_PS() {}
+	FShader_PS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		:FMyShaderBase(Initializer)
+	{
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(, FShader_PS, TEXT("/GlobalShaderPlug/MyGlobalShader.usf"), TEXT("MainPS"), SF_Pixel)
+// 上面的宏等价于下面这行
+// IMPLEMENT_GLOBAL_SHADER(FShader_PS, TEXT("/GlobalShaderPlug/MyGlobalShader.usf"), TEXT("MainPS"), SF_Pixel)
+```
+上面例子中定义了一个Pixel Shader，参数释义：
+
+- FShader_PS是C++的Shader类名称
+- TEXT("/GlobalShaderPlug/MyGlobalShader.usf") 是usf shader文件的名称
+- TEXT("MainPS") 是 usf shader 文件中的Pixel Shader的函数名称
+- SF_Pixel 说明这是一个Pixel Shader。这个参数也被称为 Shader的Frequency，即决定这是一个Vertex Shader，Pixel Shader 还是 Compute Shader等。
+
+
+## 定义和使用一个属性的步骤 {#defineparameter}
 1. 声明
 在FMyShaderBase的private区域使用LAYOUT_FIELD宏声明了一个参数，名称为MainColorVal
 ```cpp
 LAYOUT_FIELD(FShaderParameter, MainColorVal);
 ```
 2. 绑定shader文件中相应的属性
-在FMyShaderBase的构造函数中使用Bind函数将上一步声明的属性(MainColorVal)和shader文件中的MainColor属性进行绑定
+在FMyShaderBase的构造函数中使用Bind函数将上一步声明的属性(MainColorVal)和usf shader文件中的MainColor属性进行绑定
 ```cpp
 MainColorVal.Bind(Initializer.ParameterMap, TEXT("MainColor"));
 ```
@@ -224,6 +256,7 @@ void SetShaderValue(
   - 第四个参数是值，我们自己给SetParameters函数增加了一个FLinearColor类型的参数，并传递给这个形参。由于FLinearColor是一个包含了四个float类型元素的结构体，因此和usf Shader中的float4类型是匹配的。
 
 因为我们在基类中已经绑定好了参数，所以在后面的FShader_VS和FShader_PS中只做了很少的事情，基本就是使用DECLARE_GLOBAL_SHADER宏声明了Shader。
+> 实际上也可以分别单独定义vertex shader和pixel shader，而不采用共同派生自同一个基类的做法。
 
 ```cpp
 DECLARE_GLOBAL_SHADER(FShader_VS)
@@ -231,6 +264,14 @@ DECLARE_GLOBAL_SHADER(FShader_VS)
 DECLARE_GLOBAL_SHADER(FShader_PS)
 ```
 最后，使用IMPLEMENT_SHADER_TYPE宏(61-62行)，定义了像素shader的内容和顶点shader的内容，注意第一个参数之前有个逗号，第二个参数是前面的C++类名，第三个参数是usf文件的路径，第四个参数是从usf文件中找出shader函数的名字，最后一个参数是要定义的shader类型。
+
+4. 在usf shader文件中使用属性
+C++属性中定义和绑定的大多数属性(Uniform buffer除外)，在usf shader中都需要在开头有一个同名的变量。
+例如第2步中绑定的是“MainColor”，因此usf shader开头要有一个同类型的变量：
+```c
+float4 MainColor;
+```
+因为这个参数只在pixel shader中使用，所以在C++中传参的时候只需要给Pixel Shader传即可，绑定参数也只需要给Pixel shader绑定。但是这里我们采用了继承的结构使得C++中Vertex Shader和Pixel Shader都具有了这个参数。
 
 至此，Global Shader的创建已经完成，剩下的就是如何使用他们了。
 

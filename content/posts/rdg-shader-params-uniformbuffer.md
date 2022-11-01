@@ -118,8 +118,74 @@ public:
 };
 IMPLEMENT_GLOBAL_SHADER(FCrossSectionPS, "/Engine/Private/MyPassShader.usf", "CrossSectionPS", SF_Pixel)
 ```
+## usf shader参数
+
+### usf 数据类型
+usf的基本数据类型只能是hlsl的数据类型（另外也有一部分结构体和普通的hlsl不一样），需要和虚幻C++中的数据类型进行对应。 下面举几个例子：
+
+|  UE类型              |   usf/hlsl类型  | 
+|:-----                |:-----           |
+|  float				|	float		|
+|  FVector2D/FVector2f	|	float2		|
+|  FVector/FVector3f	|	float3		|
+|  FVector4D/FVector4f	|	float4		|
+|  FMatrix				|	float4x4	|
+|  Texture2D			|	Texture2D	|
+|  Texture3D			|	Texture3D   |
+|  RWTexture3D          |   RWTexture3D |
+
+注意其中的Texture类数据，我们在C++中会对其设定储存的数据格式，在usf端我们往往也需要在其数据类型后面添加一对尖括号，并在括号内说明数据类型。下面举一例：
+
+1. 参数定义，使用的是Texture3D类型，是一种三维贴图格式，但是Shader参数中并未指定该三维贴图的详细信息，例如尺寸，例如数据格式(每一个像素存储的是单通道还是多通道)。
+```cpp
+SHADER_PARAMETER_RDG_TEXTURE(Texture3D,VolumeTexture)
+```
+2. 纹理描述，并创建纹理。这里通过FIntVector制定了纹理尺寸，通过EPixelFormat::PF_R32_FLOAT说明了纹理存储的格式是32位的浮点数。
+```cpp
+FRDGTextureDesc TextDesc = FRDGTextureDesc::Create3D(
+			FIntVector(textureSize, textureSize, textureSize),
+			EPixelFormat::PF_R32_FLOAT,
+			FClearValueBinding::None,
+			TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_UAV);
+
+FRDGTexture* vt = GraphBuilder.CreateTexture(TextDesc, TEXT("VolumeTexture"));
+```
+3. 中间又经过一系列操作，填充了数据，这里略去，只展示最终传入Shader参数：
+```cpp
+PassParams->VolumeTexture = vt;
+```
+4. 在usf中该参数的格式也要对应：
+```c
+Texture3D<float> VolumeTexture;
+```
+如果在C++中指定贴图格式是 EPixelFormat::PF_FloatRGB 或 EPixelFormat::PF_FloatRGBA , 则usf 中要改为
+```c
+// 对应PF_FloatRGB
+Texture3D<float3> VolumeTexture;
+// 对应PF_FloatRGBA
+Texture3D<float4> VolumeTexture;
+```
+
+
+### C++和usf参数对应
+*UniformBuffer除外的大多数Shader参数，在usf文件的顶部都要进行声明。*
+
+C++的Shader定义中，Shader参数列表一定要包含该shader的 usf 文件的函数定义中所使用到的所有参数，*包括通过函数间接引用到的*。
+
+例如某个usf 的Shader中调用了ConvertFromDeviceZ 方法，这个方法中使用了View这个Uniform，因此我们需要在参数列表中加入
+```cpp
+SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, View)
+```
+否则会出现类似这样的报错：
+> Shader FMyPS, permutation 0 has unbound parameters not represented in the parameter struct:  View
+
+另外由于 ConvertFromDeviceZ 函数是定义于 Common.ush中的，所以在usf文件开头要加入
+```c
+#include "Common.ush"
+```
 
 ## Uniform Buffer
+### 两种引用UniformBuffer的方法
 如前所述，Uniform Buffer即一个全局的Shader参数。
 我们在 [这篇文章]({{< ref "/posts/ue4-global-shaders-uniformbuffer.md" >}})
 中已经讲过UniformBuffer的声明和定义，在RDG环境下，它的声明和定义方式仍然是一样的，有区别的是传入数据的方式。
@@ -131,7 +197,7 @@ IMPLEMENT_GLOBAL_SHADER(FCrossSectionPS, "/Engine/Private/MyPassShader.usf", "Cr
 - SHADER_PARAMETER_RDG_UNIFORM_BUFFER
 - SHADER_PARAMETER_STRUCT_REF
   
-  他们实现的目的是一样的，都是引用一个 Uniform Buffer 作为本Shader的参数，但是前者(RDG版本) 适用于 由RDG 跟踪的Uniform Buffer，而后者适用于非 RDG 跟踪的Uniform Buffer。
+他们实现的目的是一样的，都是引用一个 Uniform Buffer 作为本Shader的参数，但是前者(RDG版本) 适用于 由RDG 跟踪的Uniform Buffer，而后者适用于非 RDG 跟踪的Uniform Buffer。
 
 ### RDG跟踪的UniformBuffer
   所谓“由RDG跟踪”的Uniform Buffer的使用流程如下：
@@ -171,7 +237,7 @@ public:
     PassParams->UniformBuffer = ub;
 ```
   6. Shader中使用
-在usf shader中使用uniform buffer的方法实际上和旧的方法是完全一样的，同样是无需在shader中定义，在shader中直接通过IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT宏定义的名称进行引用即可。
+在usf shader中使用uniform buffer的方法实际上和旧的方法是完全一样的，同样是*无需在shader中定义*，在shader中直接通过IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT宏定义的名称进行引用即可。
 ```cpp
 IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FRadiationUniformParameters, "RadiationUniform");
 ```
@@ -180,8 +246,7 @@ IMPLEMENT_GLOBAL_SHADER_PARAMETER_STRUCT(FRadiationUniformParameters, "Radiation
 uv = (p - RadiationUniform.BoundsMin) / RadiationUniform.BoundsSize;
 ```
 
-
-注意，有些常用的全局UniformBuffer是现成的，在Render函数中可以直接获取到的，这样就可以省略上面的3、4两部，而是直接进入第5步。
+注意，对于非自定义的、系统已提供的UniformBuffer，在Render函数中可以直接获取到，这样就可以省略上面的3、4两步，而直接进入第5步。
 
 例如常见的 TRDGUniformBufferRef<FSceneTextureUniformParameters> SceneTextures，它包含场景颜色、场景深度、GBuffer等等内容。
 ```cpp
@@ -239,6 +304,17 @@ PassParams->SceneTextures = SceneTextures;
 ```
 ### 非RDG跟踪的UniformBuffer
 非RDG跟踪的UniformBuffer指的是从创建到传值都使用的是非RDG方法的UniformBuffer，可以参考 [这篇文章]({{< ref "/posts/ue4-global-shaders-uniformbuffer.md" >}})。
-4.27和5.03的引擎源码中使用 SHADER_PARAMETER_STRUCT_REF 宏的情况已经非常少，只有 FViewUniformShaderParameters 和其他少数几种情况。
+使用 SHADER_PARAMETER_STRUCT_REF 宏的典型情况是 FViewUniformShaderParameters。
 
-
+这个例子我们在"usf shader参数"部分也引用了，因此我们在需要使用View的情况下，参考"usf shader参数"部分的讲解进行设置，最后通过以下代码获取ViewUniformBuffer并传入shader的参数：
+```cpp
+PassParams->View = View.ViewUniformBuffer; 
+```
+其中View结构一般是从Render函数或者渲染委托中得到的，例如：
+```cpp
+for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+{
+	const FViewInfo& View = Views[ViewIndex];
+	//...
+}
+```
