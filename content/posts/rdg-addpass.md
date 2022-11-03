@@ -88,8 +88,7 @@ ENUM_CLASS_FLAGS(ERDGPassFlags);
 
 Lambda函数首先要将需要用到的参数添加到捕获列表中， 函数参数为 FRHICommandListImmediate& RHICmdList。
 
-在函数体内，我们需要声明一个 FGraphicsPipelineStateInitializer 对象，通过该对象对Pass进行必要的设置，包括但不限于：
-DepthStencilState， BlendState， RasterizerState， PrimitiveType， (BlenderShaderState)VertexDeclarationRHI, (BlenderShaderState)VertexShaderRHI, (BlenderShaderState)PixelShaderRHI等等
+在函数体内，我们需要声明一个 FGraphicsPipelineStateInitializer 对象，通过该对象对Pass进行必要的设置。
 
 之后还要设置各个Shader的参数，这个操作通常采用 SetShaderParameters 函数来完成。
 
