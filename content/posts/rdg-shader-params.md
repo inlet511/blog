@@ -166,6 +166,10 @@ GraphBuilder.AddPass(
 				});
 ```
 
+特别注意的一点是，AddPass的第二个参数有以下情形：
+- 可以是PixelShader的参数
+- 可以是PixelShader和VertexShader共享的参数，两者都派生自一个共同的父类。可以查看 FShaderDrawSymbolsVS，FShaderDrawSymbolsPS的例子。
+
 
 ### 2.5 RENDER_TARGET_BINDING_SLOTS {#rendertargetbinding}
 注意，每一个Raster Pass都需要一个RenderTarget，RDG通过 RENDER_TARGET_BINDING_SLOTS 参数为Raster Pass暴露了固定渲染管线的RenderTarget，我们只需要给参数增加一个 RENDER_TARGET_BINDING_SLOTS()

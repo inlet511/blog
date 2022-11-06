@@ -10,9 +10,7 @@ tags:
 ---
 
 *UE5版本:5.03*
----
-
-## 渲染开发的设置变化
+## 1 渲染开发的设置变化
 在UE4中，我们需要在Engine/Config/ConsoleVariables.ini 中修改以下内容：
 ```ini
 r.ShaderDevelopmentMode=1
@@ -27,7 +25,7 @@ UE5中，这些名称有了一定的变化
 |r.Shaders.PrepareExportedDebugInfo|r.Shaders.GenerateSymbol|生成符号，但不将其写入磁盘（备注：符号存储在DDC中）|
 |r.Shaders.ExportDebugInfo|r.Shaders.WriteSymbols|如果符号已生成，则将其写入磁盘。|
 
-## FPostOpaqueRenderParameters的变化
+## 2 FPostOpaqueRenderParameters的变化
 
 在UE4中就有了 RegisterPostOpaqueRenderDelegate 和 RegisterOverlayRenderDelegate 这两个函数，他们都使用一个FPostOpaqueRenderDelegate类型的参数。在这两个函数的帮助下，我们可以不用修改引擎代码，直接在独立的文件/插件中向渲染管线中增加自己需要的功能。
 ```cpp
@@ -62,7 +60,7 @@ typedef FOnPostOpaqueRender::FDelegate FPostOpaqueRenderDelegate;
 ```
 但是彼时FPostOpaqueRenderDelegate的参数FPostOpaqueRenderParameters中缺少重要的一项,那就是 FViewInfo，现在UE5中有了该项，我们就可以获取当前视窗的更多数据，可以说基本上和通过修改源码直接在渲染管线中增加渲染功能的自由度是差不多的。例如我们需要增加的渲染和当前视窗的FOV，窗口尺寸有关系的话，现在我们就可以使用这个功能而免去修改源码之苦了。
 
-### 使用范例
+### 2.1 使用范例
 ```cpp
 //.h
 class FRadiationRenderer
@@ -96,7 +94,7 @@ void FRadiationRenderer::Render(FPostOpaqueRenderParameters& InParameters)
 }
 ```
 
-## GraphicsPipelineStateInitializer的变化
+## 3 GraphicsPipelineStateInitializer的变化
 
 现在UE5中VertexShader和PixelShader设置参数需要在绑定Shader以及设置了GraphicsPipeline之后进行，否则会报错。UE4中这些顺序似乎无关紧要，都能正常运行。
 ```cpp
@@ -113,7 +111,7 @@ void FRadiationRenderer::Render(FPostOpaqueRenderParameters& InParameters)
 	SetShaderParameters(RHICmdList, ps, ps.GetPixelShader(), *Parameters);
 ```
 
-## Buffer类型统一
+## 4 Buffer类型统一
 
 RHICreateVertexBuffer, RHICreateIndexBuffer都统一为RHICreateBuffer
 FVertexBufferRHIRef, FIndexBufferRHIRef都统一为FBufferRHIRef
@@ -126,7 +124,7 @@ UE4:
 UE5:
 ![New](./new.png)
 
-## 数据类型的变化
+## 5 数据类型的变化{#data_type_updates}
 UE5中涉及到渲染，向量类型都有所改变，否则会得到错误的结果。
 FVector2D变为FVector2f, FVector变为 FVector3f
 FVector3f的初始化： FVector3f(FVector类型数据)
@@ -135,6 +133,6 @@ FVector3f的初始化： FVector3f(FVector类型数据)
 
 
 
-## GraphBuilder.AddPass的变化
+## 6 GraphBuilder.AddPass的变化
 GraphBuilder.AddPass的Lambda函数传入参数必须是 FRHICommandListImmediate类型，否则Lambda函数会在逻辑线程执行。4.26中使用FRHICommandList是可以保持在渲染线程的。
 ![AddPass](./addpass.png)

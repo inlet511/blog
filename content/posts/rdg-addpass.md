@@ -50,8 +50,9 @@ FRDGBuilder& GraphBuilder = *InParameters.GraphBuilder;
 
 ### 3.2 Pass参数
 第二个参数是该Pass的参数，注意这个Pass的参数可以是PixelShader的参数， 也可以是VertexShader和PixelShader共享的参数，如果是一个纯Compute Shader Pass，则可以是ComputeShader的参数。
-我们可以看到如下一些不同的应用情形：
-
+我们可以看到如下不同的应用情形：
+1. 直接使用PixelShader的参数作为Pass的参数
+2. VertexShader和PixelShader共享一组Shader参数（从一个父类派生），将这组Shader参数传入。如 FShaderDrawSymbolsVS和 FShaderDrawSymbolsPS都是从 FShaderDrawSymbols派生。
 
 
 ### 3.3 Pass标记
