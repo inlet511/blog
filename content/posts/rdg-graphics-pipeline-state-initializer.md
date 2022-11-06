@@ -1,7 +1,7 @@
 ---
-title: "Graphics Pipeline State Initializer"
+title: "RDG04 Graphics Pipeline State Initializer"
 date: 2022-11-03T22:14:37+08:00
-draft: true
+draft: false
 toc: true
 categories: [UE5]
 series:
@@ -17,7 +17,7 @@ tags:
   - 栅格化状态
   - 深度模板状态
 ---
-## 概述和范例
+## 1 概述和范例
 FGraphicsPipelineStateInitializer 是一个代表渲染管线状态的对象，一个使用范例：
 ```cpp
 FGraphicsPipelineStateInitializer GraphicsPSOInit; // 声明
@@ -36,7 +36,7 @@ GraphicsPSOInit.BoundShaderState.PixelShaderRHI = ps.GetPixelShader();
 SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit,0);
 ```
 
-## 成员
+## 2 成员
 FGraphicsPipelineStateInitializer 包括以下成员(并非全部都要设置)：
 ```cpp
 FBoundShaderStateInput			BoundShaderState;       // 包含三个子成员，顶点Layout、顶点着色器、像素着色器
@@ -71,7 +71,7 @@ FRHIVertexShader* VertexShaderRHI = nullptr;
 FRHIPixelShader* PixelShaderRHI = nullptr;
 ```
 
-### BoundShaderState
+### 2.1 BoundShaderState
 主要是用来设置顶点布局、顶点着色器、像素着色器, 例：
 ```cpp
 GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = MyVertexDeclaration.VertexDeclarationRHI;
@@ -80,7 +80,7 @@ GraphicsPSOInit.BoundShaderState.PixelShaderRHI = ps.GetPixelShader();
 ```
 
 
-### BlendState
+### 2.2 BlendState
 混合状态，看例子:
 ```cpp
 GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI();
@@ -173,7 +173,7 @@ BO_Min和BO_Max忽略了混合因子
 
 最后四个选项没有在DirectX中找到对应的选项，没有继续探究，前面的应该足够一般使用了。
 
-### RasterizerState
+### 2.3 RasterizerState
 例子：
 ```cpp
 GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
@@ -188,7 +188,7 @@ CullMode默认值是CM_None， 另外可选择：	CM_CW(Cull Clockwise), CM_CCW(
 
 bEnableLineAA 默认是false
 
-### DepthStencilState
+### 2.4 DepthStencilState
 深度&模板状态
 例子：
 ```cpp

@@ -1,6 +1,6 @@
 ---
-title: "Rdg Uniformbuffer"
-date: 2022-10-31T14:01:29+08:00
+title: "RDG02 Uniformbuffer"
+date: 2022-11-01T14:01:29+08:00
 draft: false
 toc: true
 categories: [UE5]

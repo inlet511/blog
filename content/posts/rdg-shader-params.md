@@ -1,5 +1,5 @@
 ---
-title: "RDG-Shader参数"
+title: "RDG01-Shader参数"
 date: 2022-10-31T21:34:21+08:00
 draft: false
 toc: true
@@ -122,7 +122,7 @@ IMPLEMENT_GLOBAL_SHADER(FCrossSectionPS, "/Engine/Private/MyPassShader.usf", "Cr
 ```
 
 ### 2.4 用法
-在C++中定义完Shader以及其参数之后，首先在渲染函数中获取到该Shsader，以GlobalShader为例：
+在C++中定义完Shader以及其参数之后，首先在渲染函数中获取到该Shader，以GlobalShader为例：
 ```cpp
 	const FGlobalShaderMap* GlobalShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 	const TShaderMapRef<FMyVS> VertexShader(GlobalShaderMap);
@@ -167,7 +167,7 @@ GraphBuilder.AddPass(
 ```
 
 
-### 2.5 RENDER_TARGET_BINDING_SLOTS
+### 2.5 RENDER_TARGET_BINDING_SLOTS {#rendertargetbinding}
 注意，每一个Raster Pass都需要一个RenderTarget，RDG通过 RENDER_TARGET_BINDING_SLOTS 参数为Raster Pass暴露了固定渲染管线的RenderTarget，我们只需要给参数增加一个 RENDER_TARGET_BINDING_SLOTS()
 
 在给参数赋值的时候做这两件事：

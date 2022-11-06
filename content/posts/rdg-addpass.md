@@ -1,5 +1,5 @@
 ---
-title: "Rdg AddPass"
+title: "RDG03 AddPass"
 date: 2022-11-02T23:19:27+08:00
 draft: false
 toc: true
@@ -13,7 +13,7 @@ tags:
   - AddPass
 ---
 
-## 原型
+## 1 原型
 RDG流程中，添加一个Pass的方法是 *FRDGBuilder::AddPass()*,其应用的最广泛的一个重载的原型如下：
 ```cpp
 template <typename ParameterStructType, typename ExecuteLambdaType>
@@ -26,13 +26,13 @@ FRDGPassRef FRDGBuilder::AddPass(
 	return AddPassInternal(Forward<FRDGEventName>(Name), ParameterStructType::FTypeInfo::GetStructMetadata(), ParameterStruct, Flags, Forward<ExecuteLambdaType>(ExecuteLambda));
 }
 ```
-## 调用入口
-### 系统内的Render函数
+## 2 调用入口
+### 2.1 系统内的Render函数
 如果直接修改引擎代码，调用该函数的位置一般是在 FDeferredShadingSceneRenderer 的 Render函数中，这个函数中可以直接访问到 GraphBuilder ，它是一个FRDGBuilder对象，我们可以直接通过该对象调用 AddPass方法：
 ```cpp
  GraphBuilder.AddPass(...)
 ```
-### 渲染委托
+### 2.2 渲染委托
 避免修改引擎源码，我们可以调用渲染委托，通过 RegisterPostOpaqueRenderDelegate 和 RegisterOverlayRenderDelegate 两个方法添加渲染的函数。例如：
 ```cpp
 RenderHandle = GetRendererModule().RegisterOverlayRenderDelegate(FPostOpaqueRenderDelegate::CreateRaw(this, &FRadiationRenderer::Render));
@@ -42,19 +42,19 @@ RenderHandle = GetRendererModule().RegisterOverlayRenderDelegate(FPostOpaqueRend
 FRDGBuilder& GraphBuilder = *InParameters.GraphBuilder;
 ```
 
-## 参数分析
+## 3 参数分析
 它接受4个参数，下面逐个说明。
 
-### 参数1 Pass名称
+### 3.1 Pass名称
 第一个参数是该Pass的名称，主要用于进行图形调试，例如使用RenderDoc这样的工具，可以看到这个Pass的名称。一般使用 RDG_EVENT_NAME("EventName") 来定义，双引号中间填写该Pass的名称。
 
-### 参数2 Pass参数
+### 3.2 Pass参数
 第二个参数是该Pass的参数，注意这个Pass的参数可以是PixelShader的参数， 也可以是VertexShader和PixelShader共享的参数，如果是一个纯Compute Shader Pass，则可以是ComputeShader的参数。
 我们可以看到如下一些不同的应用情形：
 
 
 
-### 参数3 Pass标记
+### 3.3 Pass标记
 第三个参数是一个标记，它的定义：
 ```cpp
 enum class ERDGPassFlags : uint8
@@ -89,10 +89,10 @@ ENUM_CLASS_FLAGS(ERDGPassFlags);
 如果一个Pass包含了Raster标记，则必须绑定RenderTarget，否则将出现报错：
 > Pass 'XXX' is set to 'Raster' but is missing render target binding slots.
 
-绑定RenderTarget的方法是：
+绑定RenderTarget的方法: [这篇文章]({{< ref "/posts/rdg-shader-params.md#rendertargetbinding" >}})
 
 
-### 参数4 Lambda函数
+### 3.4 Lambda函数
 
 Lambda函数首先要将需要用到的参数添加到捕获列表中， 函数参数为 FRHICommandListImmediate& RHICmdList。
 
