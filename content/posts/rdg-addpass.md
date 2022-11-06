@@ -1,8 +1,16 @@
 ---
 title: "Rdg AddPass"
 date: 2022-11-02T23:19:27+08:00
-draft: true
+draft: false
 toc: true
+categories: [UE5]
+series:
+  - RDG
+tags:
+  - 图形学
+  - UE
+  - RDG
+  - AddPass
 ---
 
 ## 原型
