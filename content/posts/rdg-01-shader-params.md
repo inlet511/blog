@@ -120,8 +120,33 @@ public:
 };
 IMPLEMENT_GLOBAL_SHADER(FCrossSectionPS, "/Engine/Private/MyPassShader.usf", "CrossSectionPS", SF_Pixel)
 ```
+### 2.4 无参Shader
+有些Shader不需要任何参数输入，就可以使用 
+```cpp
+using FParameters = FEmptyShaderParameters; 
+```
+例如：
+```cpp
+class FGenerateMipsVS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FGenerateMipsVS);
+	SHADER_USE_PARAMETER_STRUCT(FGenerateMipsVS, FGlobalShader);
+	using FParameters = FEmptyShaderParameters;
 
-### 2.4 用法
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::ES3_1);
+	}
+
+	static void ModifyCompilationEnvironment(const FShaderPermutationParameters&, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("GENMIPS_COMPUTE"), 0);
+	}
+};
+```
+
+### 2.5 用法
 在C++中定义完Shader以及其参数之后，首先在渲染函数中获取到该Shader，以GlobalShader为例：
 ```cpp
 	const FGlobalShaderMap* GlobalShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
@@ -171,120 +196,6 @@ GraphBuilder.AddPass(
 - 可以是PixelShader和VertexShader共享的参数，两者都派生自一个共同的父类。可以查看 FShaderDrawSymbolsVS，FShaderDrawSymbolsPS的例子。
 
 
-### 2.5 RENDER_TARGET_BINDING_SLOTS {#rendertargetbinding}
-注意，每一个Raster Pass都需要一个RenderTarget，RDG通过 RENDER_TARGET_BINDING_SLOTS 参数为Raster Pass暴露了固定渲染管线的RenderTarget，我们只需要给参数增加一个 RENDER_TARGET_BINDING_SLOTS()
-
-在给参数赋值的时候做这两件事：
-- 为RenderTargets[0]赋值一个FRenderTargetBinding，设置颜色的绑定对象以及操作。
-- 为RenderTargets.DepthStencil赋值一个FDepthStencilBinding，设置深度模板的绑定对象及操作。
-  
-```cpp
-PSParams->RenderTargets[0] = FRenderTargetBinding(SceneColorTexture, ERenderTargetLoadAction::ELoad);
-PSParams->RenderTargets.DepthStencil = FDepthStencilBinding(
-	SceneDepthTexture, ERenderTargetLoadAction::ELoad, ERenderTargetLoadAction::ELoad,
-	FExclusiveDepthStencil::DepthWrite_StencilWrite);
-```
-#### FRenderTargetBinding 构造函数
-```cpp
-FRenderTargetBinding(FRDGTexture* InTexture, ERenderTargetLoadAction InLoadAction, uint8 InMipIndex = 0, int16 InArraySlice = -1)
-```
-第一个参数是 FRDGTextureRef类型对象，赋给SceneColorTexture即可。
-
-第二个参数是 ERenderTargetLoadAction 枚举，有三个成员：
-- ELoad: 保留Texture已存在的部分
-- EClear: 清理Texture，采用其优化的清除值
-- ENoAction: 可能不会保留内容，这个选项在某些硬件上速度更快（如果确保所有有效像素都被写入）
-
-#### FDepthStencilBinding 构造函数
-```cpp
-FDepthStencilBinding(
-		FRDGTexture* InTexture,
-		ERenderTargetLoadAction InDepthLoadAction,
-		ERenderTargetLoadAction InStencilLoadAction,
-		FExclusiveDepthStencil InDepthStencilAccess)
-```
-第一个参数赋给SceneDepthTexture即可。
-
-第二、三个参数分别是设定深度和模板部分的操作。
-
-第四个参数是 FExclusiveDepthStencil 类型，它控制着每个平面是否具有读取或写入访问权限
-```cpp
-enum Type
-	{
-		// 不要使用上面的单独选项，使用下面的组合
-		// 4 bits are used for depth and 4 for stencil to make the hex value readable and non overlapping
-		DepthNop = 0x00,
-		DepthRead = 0x01,
-		DepthWrite = 0x02,
-		DepthMask = 0x0f,
-		StencilNop = 0x00,
-		StencilRead = 0x10,
-		StencilWrite = 0x20,
-		StencilMask = 0xf0,
-
-		// 用这些：
-		DepthNop_StencilNop = DepthNop + StencilNop,
-		DepthRead_StencilNop = DepthRead + StencilNop,
-		DepthWrite_StencilNop = DepthWrite + StencilNop,
-		DepthNop_StencilRead = DepthNop + StencilRead,
-		DepthRead_StencilRead = DepthRead + StencilRead,
-		DepthWrite_StencilRead = DepthWrite + StencilRead,
-		DepthNop_StencilWrite = DepthNop + StencilWrite,
-		DepthRead_StencilWrite = DepthRead + StencilWrite,
-		DepthWrite_StencilWrite = DepthWrite + StencilWrite,
-	};
-```
-#### 例子
-颜色目标手动清除，而深度和模板目标使用硬件清除操作：
-```cpp
-BEGIN_SHADER_PARAMETER_STRUCT(FRenderTargetParameters, RENDERCORE_API)
-
-    // 这些绑定插槽包含颜色和深度模板目标。
-    RENDER_TARGET_BINDING_SLOTS()
-
-END_SHADER_PARAMETER_STRUCT()
-
-void AddClearRenderTargetPass(FRDGBuilder& GraphBuilder, FRDGTexture* Texture, const FLinearColor& ClearColor, FIntRect Viewport)
-{
-    FRenderTargetParameters* Parameters = GraphBuilder.AllocParameters<FRenderTargetParameters>();
-
-    Parameters->RenderTargets[0] = FRenderTargetBinding(
-        Texture,
-        ERenderTargetLoadAction::ENoAction // <- 不需要加载之前的render target 内容，因为我们要手动清理
-    );
-
-    GraphBuilder.AddPass(
-        RDG_EVENT_NAME("ClearRenderTarget(%s) [(%d, %d), (%d, %d)] ClearQuad", Texture->Name, Viewport.Min.X, Viewport.Min.Y, Viewport.Max.X, Viewport.Max.Y),
-        Parameters,
-        ERDGPassFlags::Raster,
-        [Parameters, ClearColor, Viewport](FRHICommandList& RHICmdList)
-    {
-        RHICmdList.SetViewport(Viewport.Min.X, Viewport.Min.Y, 0.0f, Viewport.Max.X, Viewport.Max.Y, 1.0f);
-        DrawClearQuad(RHICmdList, ClearColor);
-    });
-}
-
-void AddClearDepthStencilPass(FRDGBuilder& GraphBuilder, FRDGTextureRef Texture)
-{
-    auto* PassParameters = GraphBuilder.AllocParameters<FRenderTargetParameters>();
-
-    PassParameters->RenderTargets.DepthStencil = FDepthStencilBinding(
-        Texture,
-        ERenderTargetLoadAction::EClear, // <- 清理深度到其优化的清理值.
-        ERenderTargetLoadAction::EClear, // <- 清理模板到其优化的清理值.
-        FExclusiveDepthStencil::DepthWrite_StencilWrite // <- 允许写入深度和模板
-    );
-
-    GraphBuilder.AddPass(
-        RDG_EVENT_NAME("ClearDepthStencil (%s)", Texture->Name),
-        PassParameters,
-        ERDGPassFlags::Raster,
-        [](FRHICommandList&)
-    {
-        // Lambda中无实际工作！RDG为我们处理渲染通道！清除通过Clear操作完成。
-    });
-}
-```
 
 
 

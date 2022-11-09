@@ -90,7 +90,7 @@ ENUM_CLASS_FLAGS(ERDGPassFlags);
 如果一个Pass包含了Raster标记，则必须绑定RenderTarget，否则将出现报错：
 > Pass 'XXX' is set to 'Raster' but is missing render target binding slots.
 
-绑定RenderTarget的方法: [这篇文章]({{< ref "/posts/rdg-01-shader-params.md#rendertargetbinding" >}})
+绑定RenderTarget的方法见下文。
 
 
 ### 3.4 Lambda函数
@@ -105,7 +105,7 @@ Lambda函数首先要将需要用到的参数添加到捕获列表中， 函数�
 
 最终调用绘制命令进行绘制。
 
-## 辅助函数
+## 4 辅助函数
 RDG包含几个有用的辅助函数，用于添加常用的Pass。应尽可能使用这些函数。
 - FComputeShaderUtils::AddPass 用于添加Compute Pass
 - FPixelShaderUtils::AddFullScreenPass 用于添加全屏像素着色器 Pass
@@ -135,3 +135,174 @@ FPixelShaderUtils::AddFullscreenPass(
 				FIntRect(0, 0, DstSize.X, DstSize.Y));
 ```
 
+## 5 不带着色器参数的Pass
+```cpp
+BEGIN_SHADER_PARAMETER_STRUCT(FCopyTextureParameters, )
+
+    // 声明CopySrc访问FRDGTexture*
+    RDG_TEXTURE_ACCESS(Input,  ERHIAccess::CopySrc)
+
+    // 声明CopyDest访问FRDGTexture*
+    RDG_TEXTURE_ACCESS(Output, ERHIAccess::CopyDest)
+
+END_SHADER_PARAMETER_STRUCT()
+
+void AddCopyTexturePass(
+    FRDGBuilder& GraphBuilder,
+    FRDGTextureRef InputTexture,
+    FRDGTextureRef OutputTexture,
+    const FRHICopyTextureInfo& CopyInfo)
+{
+    FCopyTextureParameters* Parameters = GraphBuilder.AllocParameters<FCopyTextureParameters>();
+    Parameters->Input = InputTexture;
+    Parameters->Output = OutputTexture;
+
+    GraphBuilder.AddPass(
+        RDG_EVENT_NAME("CopyTexture(%s -> %s)", InputTexture->Name, OutputTexture->Name),
+        Parameters,
+        ERDGPassFlags::Copy,
+        [InputTexture, OutputTexture, CopyInfo](FRHICommandList& RHICmdList)
+    {
+        RHICmdList.CopyTexture(InputTexture->GetRHI(), OutputTexture->GetRHI(), CopyInfo);
+    });
+}
+```
+这个Pass的两个参数都与着色器无关，只是分别指明了要复制的源以及目标。 实现了复制贴图的功能。
+
+## 6 Raster Pass {#rendertargetbinding}
+注意，每一个Raster Pass都需要一个RenderTarget，RDG通过 RENDER_TARGET_BINDING_SLOTS 参数为Raster Pass暴露了固定渲染管线的RenderTarget，我们只需要给参数增加一个 RENDER_TARGET_BINDING_SLOTS()
+
+在给参数赋值的时候做这两件事：
+- 为RenderTargets[0]赋值一个FRenderTargetBinding，设置颜色的绑定对象以及操作。
+- 为RenderTargets.DepthStencil赋值一个FDepthStencilBinding，设置深度模板的绑定对象及操作。
+  
+```cpp
+PSParams->RenderTargets[0] = FRenderTargetBinding(SceneColorTexture, ERenderTargetLoadAction::ELoad);
+PSParams->RenderTargets.DepthStencil = FDepthStencilBinding(
+	SceneDepthTexture, ERenderTargetLoadAction::ELoad, ERenderTargetLoadAction::ELoad,
+	FExclusiveDepthStencil::DepthWrite_StencilWrite);
+```
+### FRenderTargetBinding 构造函数
+```cpp
+FRenderTargetBinding(FRDGTexture* InTexture, ERenderTargetLoadAction InLoadAction, uint8 InMipIndex = 0, int16 InArraySlice = -1)
+```
+第一个参数是 FRDGTextureRef类型对象，赋给SceneColorTexture即可。
+
+第二个参数是 ERenderTargetLoadAction 枚举，有三个成员：
+- ELoad: 保留Texture已存在的部分
+- EClear: 清理Texture，采用其优化的清除值
+- ENoAction: 可能不会保留内容，这个选项在某些硬件上速度更快（如果确保所有有效像素都被写入）
+
+### FDepthStencilBinding 构造函数
+```cpp
+FDepthStencilBinding(
+		FRDGTexture* InTexture,
+		ERenderTargetLoadAction InDepthLoadAction,
+		ERenderTargetLoadAction InStencilLoadAction,
+		FExclusiveDepthStencil InDepthStencilAccess)
+```
+第一个参数赋给SceneDepthTexture即可。
+
+第二、三个参数分别是设定深度和模板部分的操作。
+
+第四个参数是 FExclusiveDepthStencil 类型，它控制着每个平面是否具有读取或写入访问权限
+```cpp
+enum Type
+	{
+		// 不要使用上面的单独选项，使用下面的组合
+		// 4 bits are used for depth and 4 for stencil to make the hex value readable and non overlapping
+		DepthNop = 0x00,
+		DepthRead = 0x01,
+		DepthWrite = 0x02,
+		DepthMask = 0x0f,
+		StencilNop = 0x00,
+		StencilRead = 0x10,
+		StencilWrite = 0x20,
+		StencilMask = 0xf0,
+
+		// 用这些：
+		DepthNop_StencilNop = DepthNop + StencilNop,
+		DepthRead_StencilNop = DepthRead + StencilNop,
+		DepthWrite_StencilNop = DepthWrite + StencilNop,
+		DepthNop_StencilRead = DepthNop + StencilRead,
+		DepthRead_StencilRead = DepthRead + StencilRead,
+		DepthWrite_StencilRead = DepthWrite + StencilRead,
+		DepthNop_StencilWrite = DepthNop + StencilWrite,
+		DepthRead_StencilWrite = DepthRead + StencilWrite,
+		DepthWrite_StencilWrite = DepthWrite + StencilWrite,
+	};
+```
+### 例子
+颜色目标手动清除，而深度和模板目标使用硬件清除操作：
+```cpp
+BEGIN_SHADER_PARAMETER_STRUCT(FRenderTargetParameters, RENDERCORE_API)
+
+    // 这些绑定插槽包含颜色和深度模板目标。
+    RENDER_TARGET_BINDING_SLOTS()
+
+END_SHADER_PARAMETER_STRUCT()
+
+void AddClearRenderTargetPass(FRDGBuilder& GraphBuilder, FRDGTexture* Texture, const FLinearColor& ClearColor, FIntRect Viewport)
+{
+    FRenderTargetParameters* Parameters = GraphBuilder.AllocParameters<FRenderTargetParameters>();
+
+    Parameters->RenderTargets[0] = FRenderTargetBinding(
+        Texture,
+        ERenderTargetLoadAction::ENoAction // <- 不需要加载之前的render target 内容，因为我们要手动清理
+    );
+
+    GraphBuilder.AddPass(
+        RDG_EVENT_NAME("ClearRenderTarget(%s) [(%d, %d), (%d, %d)] ClearQuad", Texture->Name, Viewport.Min.X, Viewport.Min.Y, Viewport.Max.X, Viewport.Max.Y),
+        Parameters,
+        ERDGPassFlags::Raster,
+        [Parameters, ClearColor, Viewport](FRHICommandList& RHICmdList)
+    {
+        RHICmdList.SetViewport(Viewport.Min.X, Viewport.Min.Y, 0.0f, Viewport.Max.X, Viewport.Max.Y, 1.0f);
+        DrawClearQuad(RHICmdList, ClearColor);
+    });
+}
+
+void AddClearDepthStencilPass(FRDGBuilder& GraphBuilder, FRDGTextureRef Texture)
+{
+    auto* PassParameters = GraphBuilder.AllocParameters<FRenderTargetParameters>();
+
+    PassParameters->RenderTargets.DepthStencil = FDepthStencilBinding(
+        Texture,
+        ERenderTargetLoadAction::EClear, // <- 清理深度到其优化的清理值.
+        ERenderTargetLoadAction::EClear, // <- 清理模板到其优化的清理值.
+        FExclusiveDepthStencil::DepthWrite_StencilWrite // <- 允许写入深度和模板
+    );
+
+    GraphBuilder.AddPass(
+        RDG_EVENT_NAME("ClearDepthStencil (%s)", Texture->Name),
+        PassParameters,
+        ERDGPassFlags::Raster,
+        [](FRHICommandList&)
+    {
+        // Lambda中无实际工作！RDG为我们处理渲染通道！清除通过Clear操作完成。
+    });
+}
+```
+## 7 UAV Raster Pass
+RDG支持写入UAV而不是固定管线渲染目标的Pass。最简单的办法就是使用 FPixelShaderUtils::AddUAVPass 函数。它创建了一个没有绑定渲染目标的自定义的渲染Pass,并且将RHI Viewport 设置好。
+```cpp
+BEGIN_SHADER_PARAMETER_STRUCT(FUAVRasterPassParameters, RENDERCORE_API)
+    SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, Output)
+END_SHADER_PARAMETER_STRUCT()
+
+auto* PassParameters = GraphBuilder.AllocParameters<FUAVRasterPassParameters>();
+PassParameters.Output = GraphBuilder.CreateUAV(OutputTexture);
+
+// Specify the viewport rect.
+FIntRect ViewportRect = ...;
+
+FPixelShaderUtils::AddUAVPass(
+    GraphBuilder,
+    RDG_EVENT_NAME("Raster UAV Pass"),
+    PassParameters,
+    ViewportRect,
+    [](FRHICommandList& RHICmdList)
+{
+    // Bind parameters and draw.
+});
+```
