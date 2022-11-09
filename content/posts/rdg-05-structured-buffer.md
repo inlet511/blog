@@ -1,5 +1,5 @@
 ---
-title: "RDG04 StructuredBuffer的用法"
+title: "RDG 05 StructuredBuffer的用法"
 date: 2022-11-07T00:10:45+08:00
 draft: false
 toc: true

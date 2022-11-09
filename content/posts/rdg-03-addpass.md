@@ -1,5 +1,5 @@
 ---
-title: "RDG03 AddPass"
+title: "RDG 03 AddPass"
 date: 2022-11-02T23:19:27+08:00
 draft: false
 toc: true
@@ -60,25 +60,25 @@ FRDGBuilder& GraphBuilder = *InParameters.GraphBuilder;
 ```cpp
 enum class ERDGPassFlags : uint8
 {
-	/** Pass doesn't have any inputs or outputs tracked by the graph. This may only be used by the parameterless AddPass function. */
+	/** Pass没有任何输入输出的绑定，仅用于无参的AddPass函数 */
 	None = 0,
-	/** Pass uses rasterization on the graphics pipe. */
+	/** Pass在图形管线上使用了光栅化操作*/
 	Raster = 1 << 0,
-	/** Pass uses compute on the graphics pipe. */
+	/** Pass在图形管线上使用了compute操作*/
 	Compute = 1 << 1,
-	/** Pass uses compute on the async compute pipe. */
+	/** Pass在异步计算管线中使用了compute操作*/
 	AsyncCompute = 1 << 2,
-	/** Pass uses copy commands on the graphics pipe. */
+	/** Pass在图形管线上使用了复制命令 */
 	Copy = 1 << 3,
-	/** Pass (and its producers) will never be culled. Necessary if outputs cannot be tracked by the graph. */
+	/** Pass和其生产者永不被剔除。在输出不能被Graph追踪的情况下是必须的 */
 	NeverCull = 1 << 4,
-	/** Render pass begin / end is skipped and left to the user. Only valid when combined with 'Raster'. Disables render pass merging for the pass. */
+	/** 忽略Render Pass的开始和结束，让用户去调用。只有与Raster结合时才有用。会在当前Pass上禁用Pass合并。	 */
 	SkipRenderPass = 1 << 5,
-	/** Pass will never have its render pass merged with other passes. */
+	/**	Pass将永远不会与其他Pass合并 */
 	NeverMerge = 1 << 6,
-	/** Pass will never run off the render thread. */
+	/** Pass将永远不会离开渲染线程 */
 	NeverParallel = 1 << 7,
-	/** Pass uses copy commands but writes to a staging resource. */
+	/** Pass uses copy commands but writes to a staging resource. Pass使用复制命令但是写入一个 Staging 资源 */
 	Readback = Copy | NeverCull
 };
 ENUM_CLASS_FLAGS(ERDGPassFlags);
@@ -90,7 +90,7 @@ ENUM_CLASS_FLAGS(ERDGPassFlags);
 如果一个Pass包含了Raster标记，则必须绑定RenderTarget，否则将出现报错：
 > Pass 'XXX' is set to 'Raster' but is missing render target binding slots.
 
-绑定RenderTarget的方法: [这篇文章]({{< ref "/posts/rdg-shader-params.md#rendertargetbinding" >}})
+绑定RenderTarget的方法: [这篇文章]({{< ref "/posts/rdg-01-shader-params.md#rendertargetbinding" >}})
 
 
 ### 3.4 Lambda函数
@@ -104,3 +104,34 @@ Lambda函数首先要将需要用到的参数添加到捕获列表中， 函数�
 最后还需要设置VertexBuffer(和IndexBuffer)。
 
 最终调用绘制命令进行绘制。
+
+## 辅助函数
+RDG包含几个有用的辅助函数，用于添加常用的Pass。应尽可能使用这些函数。
+- FComputeShaderUtils::AddPass 用于添加Compute Pass
+- FPixelShaderUtils::AddFullScreenPass 用于添加全屏像素着色器 Pass
+例：
+```cpp
+FComputeShaderUtils::AddPass(
+				GraphBuilder,
+				RDG_EVENT_NAME("ComputeVolumeTexture"),
+				ComputeShader,
+				CSParams,
+				FIntVector(GroupCount, GroupCount, textureSize));
+
+FPixelShaderUtils::AddFullscreenPass<RenderSkyAtmosphereEditorHudPS>(
+				GraphBuilder, 
+				View.ShaderMap, 
+				RDG_EVENT_NAME("SkyAtmosphereEditor"), 
+				PixelShader, 
+				PassParameters, 
+				View.ViewRect);
+
+FPixelShaderUtils::AddFullscreenPass(
+				GraphBuilder,
+				View.ShaderMap,
+				RDG_EVENT_NAME("DownsampleHZB(mip=%d) %dx%d", StartDestMip, DstSize.X, DstSize.Y),
+				PixelShader,
+				PassParameters,
+				FIntRect(0, 0, DstSize.X, DstSize.Y));
+```
+

@@ -1,5 +1,5 @@
 ---
-title: "RDG04 Graphics Pipeline State Initializer"
+title: "RDG 04 Graphics Pipeline State Initializer"
 date: 2022-11-03T22:14:37+08:00
 draft: false
 toc: true
